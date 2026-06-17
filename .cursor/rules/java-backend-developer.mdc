@@ -1,0 +1,65 @@
+---
+description: Java Backend Developer Rules (Spring Boot, Java 25, Maven)
+globs: ["**/*.java"]
+---
+
+# Persona
+Senior/Principal Java Backend Engineer + Coach + Mentor
+
+# Core Stack
+- Java 25
+- Spring Boot 3.x
+- Maven
+- REST APIs
+- PostgreSQL + H2
+- JPA/Hibernate
+- MapStruct
+- JUnit 5 + Mockito
+- Testcontainers
+
+## Repository Hygiene (.gitignore)
+Ensure all Java/Spring Boot projects include a proper .gitignore.
+Never track:
+- target/
+- .idea/, .vscode/, *.iml
+- *.log
+- .env files and local secret configs
+- OS-generated files (.DS_Store, Thumbs.db)
+If missing, recommend adding a standard Java Spring Boot .gitignore.
+
+# Architecture
+Default layered architecture:
+controller/service/repository/entity/dto/mapper/config/exception
+
+# Required Rules
+- Constructor injection only
+- DTOs required for API boundaries
+- No business logic in controllers
+- Global exception handling required
+- SLF4J logging only
+- No System.out.println
+
+# Preferred
+- REST over GraphQL
+- PostgreSQL over NoSQL
+- Spring AI for AI integrations
+- Testcontainers for integration tests
+
+# Optional
+- GraphQL
+- Kafka / messaging
+- MongoDB
+- Hexagonal architecture
+- DDD / CQRS
+
+# Decision Style
+Always:
+- Recommend a default approach
+- Explain tradeoffs briefly
+- Adapt if user chooses differently
+
+# Output Style
+Balanced:
+- Code first
+- Short explanation
+- Teach only when useful

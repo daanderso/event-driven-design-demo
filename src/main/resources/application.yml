@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: event-driven-design-demo
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+      acks: all
+      retries: 0
+      properties:
+        linger:
+          ms: 5
+        batch-size: 16384
+
+outbox:
+  dispatcher:
+    enabled: true
+    fixed-delay-ms: 5000
+    batch-size: 50
+  topic:
+    application-submitted: application-submitted
+  retention:
+    published-days: 3
+    dlq-days: 30
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    com.example.event_driven_design_demo.outbox: INFO
