@@ -2,17 +2,17 @@
 
 This document defines the domain entities, database schema, JPA mapping guidance and the Avro event schema for the architecture described in `docs/02-architecture.md`.
 
-## Implementation Status (as of 2026-06-06)
+## Implementation Status (as of 2026-06-16)
 
 | Item | Status |
 |------|--------|
 | JPA entities (`Application`, `Outbox`, `OutboxDlq`) | Implemented |
-| Spring Data repositories | Implemented (`OutboxRepository.findPending` only; no claiming yet) |
+| Spring Data repositories | Implemented |
 | Avro schema file | Implemented |
 | Maven Avro plugin (`avro-maven-plugin`) | Implemented in `pom.xml` |
 | H2 `schema.sql` / `data.sql` | Implemented |
-| Outbox processor claiming logic | Not started |
-| Retention cleanup job | Not started |
+| Outbox processor claiming logic | Implemented (`OutboxClaimService`) |
+| Retention cleanup job | Implemented (`OutboxCleanupJob`) |
 
 Checklist
 - Use RDBMS (H2 for dev / PostgreSQL for prod)
@@ -94,18 +94,16 @@ JPA mapping guidance (implemented in `Outbox.java`)
 - @Lob @Column(name = "payload") private byte[] payload;
 - Use Instant for timestamps
 
-Claiming strategy (safe concurrency) — **not yet implemented**
-- Atomically claim rows to avoid double-processing across instances. Options:
-  - UPDATE ... RETURNING id (Postgres-specific)
-  - Use a `processor_id` and `claimed_at` columns and optimistic claiming via UPDATE where claimed_at is null.
-  - Use pessimistic locking (SELECT FOR UPDATE SKIP LOCKED) to pick rows; recommended for Postgres.
-- For H2 in local dev, emulate behavior with simpler locking; integration tests should focus on correctness rather than production concurrency semantics.
+Claiming strategy (safe concurrency) — **implemented in `OutboxClaimService`**
+- Postgres: `SELECT ... FOR UPDATE SKIP LOCKED` via native query.
+- H2: single-instance fallback using `OutboxRepository.findPending(now, PageRequest)`.
+- Documented limitation: concurrent multi-instance correctness is not guaranteed on H2.
 
 Payload encoding
 - Store Avro binary in `payload` as bytes (bytea / BLOB). Set `content_type = avro/binary`.
-- Use the generated `ApplicationSubmitted` class from `avro-maven-plugin` for serialization (Approved Decision; see `docs/05-kafka-outbox-design.md`). `ApplicationServiceImpl` currently uses `GenericRecord` and will be migrated.
+- Use the generated `ApplicationSubmitted` class from `avro-maven-plugin` for serialization via `ApplicationSubmittedSerializer` (Approved Decision; see `docs/05-kafka-outbox-design.md`).
 
-Retention — **cleanup job not yet implemented**
+Retention — **implemented in `OutboxCleanupJob`**
 - On successful publish mark `status = PUBLISHED` and set `published_at`. Keep the record for retention window (3 days) then purge.
 
 ### 3) Outbox DLQ (table: `outbox_dlq`)
@@ -128,7 +126,7 @@ Indexes
 - Index on `application_id` for replay by application
 - Index on `correlation_id` for tracing (present in H2 `schema.sql`)
 
-Retention — **cleanup job not yet implemented**
+Retention — **implemented in `OutboxCleanupJob`**
 - Keep DLQ records for 30 days, then purge automatically.
 
 ## Database Schema (Postgres-compatible sample DDL)
@@ -226,7 +224,7 @@ The following decisions are final and reflected in the codebase:
 
 2) **Outbox.id type** — `BIGSERIAL` (Long) for efficient scanning. `application_id` and `correlation_id` are UUIDs.
 
-3) **Claiming strategy** — Postgres: `SELECT ... FOR UPDATE SKIP LOCKED`. H2: simpler single-instance fallback. **Not yet implemented.**
+3) **Claiming strategy** — Postgres: `SELECT ... FOR UPDATE SKIP LOCKED` in `OutboxClaimService`. H2: simpler single-instance fallback via `OutboxRepository.findPending`.
 
 4) **Schema versioning** — No `schema_version` column; rely on file-based versioning (`application-submitted-v1.avsc`).
 
@@ -238,9 +236,9 @@ The following decisions are final and reflected in the codebase:
 
 8) **Optimistic locking** — `@Version Long version` on `Application`.
 
-9) **Retention job** — Daily cleanup: published outbox rows older than 3 days, DLQ rows older than 30 days. **Not yet implemented.**
+9) **Retention job** — Daily cleanup in `OutboxCleanupJob`: published outbox rows older than 3 days, DLQ rows older than 30 days.
 
-10) **Testing strategy** — Unit tests on H2; concurrency tests should use Testcontainers with Postgres. **Integration tests not yet added.**
+10) **Testing strategy** — Unit tests on H2; `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`). Concurrency tests should use Testcontainers with Postgres (not yet added).
 
 ## Completed vs remaining work
 
@@ -250,11 +248,13 @@ The following decisions are final and reflected in the codebase:
 - Spring Data repositories (`ApplicationRepository`, `OutboxRepository`, `OutboxDlqRepository`)
 - H2 initialization scripts (`schema.sql`, `data.sql`)
 - Transactional outbox write in `ApplicationServiceImpl`
+- Outbox processor with Postgres-friendly claiming (H2 fallback) via `OutboxClaimService`
+- Configurable scheduled cleanup job for retention via `OutboxCleanupJob`
+- `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`)
 
 **Remaining:**
-- Outbox processor with Postgres-friendly claiming (H2 fallback)
-- Configurable scheduled cleanup job for retention
-- Integration tests with Testcontainers (Postgres + Kafka; pre-provision `application-submitted` topic)
+- Testcontainers integration tests (Postgres + Kafka; pre-provision `application-submitted` topic)
+- REST endpoint for application-table fallback replay (`OutboxReplayService.replayFromApplication()`)
 
 ## Database initialization for local H2 development
 

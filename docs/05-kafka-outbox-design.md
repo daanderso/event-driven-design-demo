@@ -18,14 +18,17 @@ The REST API and domain model are **not** redesigned here. The service already p
 | Transactional outbox write on submit              | Implemented                          |
 | Avro schema + Maven code generation               | Implemented                          |
 | `OutboxRepository.findPending`                    | Implemented                          |
-| Outbox row claiming (concurrency-safe)            | Not started                          |
-| `OutboxDispatcher` / `OutboxPublisher`            | Not started                          |
-| Spring Kafka producer (`spring-kafka`)            | Not started                          |
-| Retry / backoff                                   | Not started                          |
-| Migrate to generated `ApplicationSubmitted` Avro  | Not started                          |
-| DLQ move on exhausted retries                     | Not started                          |
-| Retention cleanup jobs (3-day outbox, 30-day DLQ) | Not started                          |
-| Admin replay / DLQ Swagger endpoints              | Not started                          |
+| Outbox row claiming (concurrency-safe)            | Implemented (`OutboxClaimService`)   |
+| `OutboxDispatcher` / `OutboxPublisher`            | Implemented                          |
+| Spring Kafka producer (`spring-kafka`)            | Implemented                          |
+| Retry / backoff                                   | Implemented (`OutboxRetryPolicy`)    |
+| Generated `ApplicationSubmitted` Avro serialization | Implemented (`ApplicationSubmittedSerializer`) |
+| DLQ move on exhausted retries                     | Implemented (`OutboxDlqService`)     |
+| Retention cleanup jobs (3-day outbox, 30-day DLQ) | Implemented (`OutboxCleanupJob`)     |
+| Admin replay / DLQ endpoints                      | Implemented (`OutboxAdminController`) |
+| Integration test (`@EmbeddedKafka`)               | Implemented                          |
+| Integration tests (Testcontainers)                | Not started                          |
+| Application fallback replay REST endpoint         | Not started (service method only)    |
 | Kafka consumer                                    | Out of scope (producer-only service) |
 
 
@@ -90,7 +93,7 @@ Source of truth: `src/main/resources/avro/application-submitted-v1.avsc`
 - **Schema registry:** Not used. Schemas are stored in-repo under `src/main/resources/avro/` with semantic versioning in filenames (`application-submitted-v1.avsc`, `application-submitted-v2.avsc`, etc.).
 - **Schema version in DB:** No `schema_version` column on outbox rows; version is implied by the Avro file and the `version` field in the payload.
 - **Evolution:** New schema files require CI compatibility checks before merge (when CI is added). Producers and consumers must agree on schema version out-of-band.
-- **Java serialization (Approved Decision):** Use the generated `com.example.event_driven_design_demo.events.ApplicationSubmitted` class from `avro-maven-plugin` for all Avro serialization. Migrate `ApplicationServiceImpl` (currently `GenericRecord`) and any replay/fallback code that constructs events. The outbox publisher sends stored `outbox.payload` bytes as-is during normal dispatch; the generated class is used at write time and for application-table fallback replay.
+- **Java serialization (Approved Decision):** Use the generated `com.example.event_driven_design_demo.events.ApplicationSubmitted` class from `avro-maven-plugin` for all Avro serialization via `ApplicationSubmittedSerializer`. The outbox publisher sends stored `outbox.payload` bytes as-is during normal dispatch; the generated class is used at write time and for application-table fallback replay.
 
 ### Kafka record headers
 
@@ -224,7 +227,7 @@ Only `PENDING` rows whose retry schedule has elapsed are candidates for processi
 ### Components
 
 
-| Component             | Package (proposed) | Responsibility                                                    |
+| Component             | Package            | Responsibility                                                    |
 | --------------------- | ------------------ | ----------------------------------------------------------------- |
 | `OutboxDispatcher`    | `...outbox`        | `@Scheduled` poller; claims a batch and invokes publisher per row |
 | `OutboxPublisher`     | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers |
@@ -257,7 +260,7 @@ Each poll cycle:
 
 ### Kafka producer configuration
 
-Add `spring-kafka` dependency and configure:
+Configured in `application.yml` with `spring-kafka`:
 
 ```yaml
 spring:
@@ -394,8 +397,8 @@ The original outbox row is retained (not deleted) until the cleanup policy appli
 ### Operator visibility
 
 - Structured ERROR logs on DLQ move.
-- Future Swagger admin endpoints to list and inspect DLQ items (see Replay design).
-- System is designed to allow future metrics (`publishAttempts`, `failedPublishes`, `retries`, `dlqCount`) without requiring them for this exercise.
+- Admin endpoints to list and inspect DLQ items (see Replay design and `docs/04-api-design.md`).
+- Outbox metrics (`publishAttempts`, `failedPublishes`, `retries`, `dlqCount`) — not yet implemented.
 
 ### Retention and cleanup
 
@@ -462,9 +465,9 @@ Run once daily (e.g. `@Scheduled(cron = "0 0 2 * * *")` — 02:00 UTC).
 
 Always use `applicationId` as the Kafka partition key. Replays for the same application land on the same partition, preserving per-application ordering.
 
-### Proposed admin endpoints
+### Admin endpoints (implemented)
 
-These endpoints are part of the event-system tooling scope and will be implemented separately from the submission API (`docs/04-api-design.md`):
+These endpoints are implemented in `OutboxAdminController` and documented in `docs/04-api-design.md`:
 
 
 | Method | Path                            | Description                     |
@@ -475,7 +478,7 @@ These endpoints are part of the event-system tooling scope and will be implement
 | POST   | `/admin/outbox/{id}/replay`     | Trigger replay from outbox row  |
 
 
-Request/response DTOs are deferred to a future admin API document (see Deferred section below). Endpoint paths above are confirmed.
+Response DTOs: `OutboxDlqResponse` and `ReplayResponse` in the `dto/` package. Swagger UI available at `/swagger-ui.html`.
 
 ---
 
@@ -517,26 +520,21 @@ The following items were resolved from the initial Open Questions review (2026-0
 
 4. **Kafka topic provisioning** — Pre-provision `application-submitted` in Testcontainers for local dev and integration tests. DEV/UAT/PROD topics pre-provisioned by infrastructure (no Testcontainers).
 
-5. **Avro serialization** — Migrate to generated `ApplicationSubmitted` class from `avro-maven-plugin` for all serialization (service write path and replay/fallback code).
+5. **Avro serialization** — Generated `ApplicationSubmitted` class from `avro-maven-plugin` used for all serialization via `ApplicationSubmittedSerializer` (service write path and replay/fallback code).
 
 ## Deferred
 
-- **Admin API contract** — Exact request/response DTOs for DLQ list, detail, and replay endpoints. Endpoint paths are documented above; shapes deferred to a future admin API document.
+- **Application fallback replay REST endpoint** — `OutboxReplayService.replayFromApplication()` exists but has no controller route.
+- **Standalone admin API document** — DTO shapes are defined in code (`OutboxDlqResponse`, `ReplayResponse`); a separate admin API spec is optional.
 
 ---
 
-## Implementation Backlog
+## Remaining work
 
-Implementation proceeds in this order (aligned with `docs/02-architecture.md`):
-
-1. Add `spring-kafka` dependency and producer configuration in `application.yml`.
-2. Migrate `ApplicationServiceImpl` from `GenericRecord` to generated `ApplicationSubmitted`.
-3. Implement `OutboxClaimService` with Postgres `SKIP LOCKED` and H2 fallback.
-4. Implement `OutboxPublisher` and `OutboxDispatcher` with retry/backoff (no circuit breaker on Kafka path).
-5. Implement `OutboxDlqService` for exhausted retry handling.
-6. Implement `OutboxCleanupJob` for 3-day / 30-day retention.
-7. Implement admin replay endpoints and Swagger documentation.
-8. Add integration tests with Testcontainers (PostgreSQL + Kafka; pre-provision `application-submitted` topic).
+1. Add Testcontainers integration tests (PostgreSQL + Kafka; pre-provision `application-submitted` topic).
+2. REST endpoint for application-table fallback replay (`replayFromApplication`).
+3. Outbox metrics / observability (queue size, publish success/failure counters).
+4. CI Avro compatibility checks.
 
 ---
 
