@@ -1,6 +1,6 @@
 # 01 - Requirements
 
-## Implementation Status (as of 2026-06-16)
+## Implementation Status (as of 2026-07-07)
 
 This document is the requirements source of truth. See `docs/02-architecture.md` for what is built vs planned. In brief: REST submission, transactional outbox write, persistence, Kafka dispatch (outbox dispatcher → `application-submitted`), retry/DLQ processing, retention cleanup, and admin replay APIs are implemented. Remaining work: `GET /applications/{id}`, REST endpoint for application-table fallback replay, Testcontainers integration tests, outbox metrics, and CI Avro compatibility checks.
 
@@ -239,7 +239,7 @@ Implementation notes & operational recommendations
 
 References / Context
 - Provided system goal: submit an application, accept firstName/lastName, generate applicationId/correlationId/timestamp, persist data, publish ApplicationSubmitted event using transactional outbox, support replay and retry handling, H2 now with PostgreSQL compatibility in future.
-- Tech stack (context only): Java 25, Spring Boot 3.x, Kafka, H2, Spring Data JPA, Maven.
+- Tech stack (context only): Java 25, Spring Boot 4.1.0, Kafka, H2, Spring Data JPA, Maven.
 
 
 

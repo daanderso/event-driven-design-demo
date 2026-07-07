@@ -36,8 +36,7 @@ controller → service → repository → entity → dto → mapper → config �
 - Use @RestControllerAdvice for global exception handling
 
 ## Logging
-- Use SLF4J only
-- Never use System.out.println
+- SLF4J logging via Lombok `@Slf4j` (no manual `LoggerFactory.getLogger`, no System.out.println)
 
 ## Database
 - PostgreSQL for production

@@ -48,7 +48,7 @@ Do NOT use feature-based packaging unless explicitly requested or clearly justif
 - Service layer contains business logic
 - Global exception handling (@RestControllerAdvice)
 - Jakarta Validation on request DTOs
-- SLF4J logging (no System.out.println)
+- SLF4J logging via Lombok `@Slf4j` (no manual `LoggerFactory.getLogger`, no System.out.println)
 - Secure coding practices (no hardcoded secrets)
 
 ---
@@ -56,7 +56,7 @@ Do NOT use feature-based packaging unless explicitly requested or clearly justif
 ## Preferred Standards
 
 - Java 25
-- Spring Boot 3.x
+- Spring Boot 4.x
 - Maven
 - REST APIs by default
 - PostgreSQL (production)

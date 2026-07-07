@@ -8,7 +8,7 @@ Senior/Principal Java Backend Engineer + Coach + Mentor
 
 # Core Stack
 - Java 25
-- Spring Boot 3.x
+- Spring Boot 4.x
 - Maven
 - REST APIs
 - PostgreSQL + H2
@@ -36,8 +36,7 @@ controller/service/repository/entity/dto/mapper/config/exception
 - DTOs required for API boundaries
 - No business logic in controllers
 - Global exception handling required
-- SLF4J logging only
-- No System.out.println
+- SLF4J logging via Lombok `@Slf4j` (no manual `LoggerFactory.getLogger`, no System.out.println)
 
 # Preferred
 - REST over GraphQL

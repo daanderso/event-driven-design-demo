@@ -94,7 +94,7 @@ src/main/java/.../
   outbox/         Dispatcher, publisher, retry, DLQ, cleanup, replay
   config/         Kafka producer configuration
   repository/     Spring Data JPA
-  entity/         Application, Outbox, OutboxDlq
+  entity/         Application, OutboxEvent, OutboxDlq
   dto/            Request/response and admin DTOs
   exception/      Global exception handling
 

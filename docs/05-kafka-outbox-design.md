@@ -10,7 +10,7 @@ The REST API and domain model are **not** redesigned here. The service already p
 
 **Retry policy (confirmed):** 1 initial publish attempt + 3 retries (4 total attempts), with exponential backoff of 1s, 2s, and 4s after failures 1, 2, and 3 respectively.
 
-## Implementation Status (as of 2026-06-16)
+## Implementation Status (as of 2026-07-07)
 
 
 | Component                                         | Status                               |
@@ -227,15 +227,17 @@ Only `PENDING` rows whose retry schedule has elapsed are candidates for processi
 ### Components
 
 
-| Component             | Package            | Responsibility                                                    |
-| --------------------- | ------------------ | ----------------------------------------------------------------- |
-| `OutboxDispatcher`       | `...outbox`        | `@Scheduled` poller; retrieves a batch and invokes publisher per row |
-| `OutboxPublisher`        | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers |
-| `OutboxRetrievalService` | `...outbox`        | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)       |
-| `OutboxRetryPolicy`   | `...outbox`        | Computes `scheduled_retry_at` from current `attempts`             |
-| `OutboxDlqService`    | `...outbox`        | Copies exhausted rows to `outbox_dlq`, marks outbox `FAILED`      |
-| `OutboxCleanupJob`    | `...outbox`        | Daily purge of old published outbox rows and DLQ rows             |
-| `OutboxReplayService` | `...outbox`        | Operator-triggered replay from outbox or DLQ                      |
+| Component                  | Package            | Responsibility                                                                     |
+| -------------------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `OutboxDispatcher`         | `...outbox`        | Scheduled poller; delegates to `OutboxDispatchService.dispatchOnce()`              |
+| `OutboxDispatchService`    | `...outbox`        | Orchestrates one dispatch cycle: retrieve batch, process each row in a transaction |
+| `OutboxProcessor`            | `...outbox`        | Per-row publish attempt, success marking, retry/DLQ on failure                     |
+| `OutboxPublisher`          | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers                  |
+| `OutboxRetrievalService`     | `...outbox`        | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)                      |
+| `OutboxRetryPolicy`          | `...outbox`        | Computes `scheduled_retry_at` from current `attempts`                              |
+| `OutboxDlqService`           | `...outbox`        | Copies exhausted rows to `outbox_dlq`, marks outbox `FAILED`                       |
+| `OutboxCleanupJob`           | `...outbox`        | Daily purge of old published outbox rows and DLQ rows                                |
+| `OutboxReplayService`        | `...outbox`        | Operator-triggered replay from outbox or DLQ                                         |
 
 
 ### Dispatcher behavior

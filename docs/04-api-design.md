@@ -6,7 +6,7 @@ This document describes the REST API contract, DTOs, validation rules, controlle
 
 Kafka publishing is **not** handled in the REST layer. The service writes an outbox record in the same transaction as the application persist; a background outbox processor (`OutboxDispatcher` / `OutboxPublisher`) publishes to Kafka asynchronously.
 
-## Implementation Status (as of 2026-06-16)
+## Implementation Status (as of 2026-07-07)
 
 | Item | Status |
 |------|--------|
@@ -115,6 +115,7 @@ Example response:
 
 - Global exception handler `@RestControllerAdvice` (package: `com.example.event_driven_design_demo.exception`)
   - Validation errors (`MethodArgumentNotValidException`, `ConstraintViolationException`) → HTTP 400 with `{ "errorCode": "VALIDATION_ERROR", "message": "..." }`.
+  - `OutboxReplayException` (admin replay, missing DLQ/outbox row) → HTTP 404 with `{ "errorCode": "NOT_FOUND", "message": "..." }`.
   - Unexpected exceptions → HTTP 500 with `{ "errorCode": "INTERNAL_ERROR", "message": "..." }`.
 
 ## Decisions
@@ -125,7 +126,7 @@ Example response:
 ## Implementation notes
 
 - Use Jakarta Validation annotations on DTOs.
-- Use SLF4J for logging in services and controllers; avoid System.out.println.
+- Use Lombok `@Slf4j` for logging in services and controllers (no manual `LoggerFactory.getLogger`); avoid System.out.println.
 - Follow constructor injection and layered architecture: controller → service → repository.
 - Keep controllers thin; place business logic in services.
 - springdoc-openapi is on the classpath; Swagger UI is available at `/swagger-ui.html` when the app is running.

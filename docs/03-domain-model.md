@@ -2,11 +2,11 @@
 
 This document defines the domain entities, database schema, JPA mapping guidance and the Avro event schema for the architecture described in `docs/02-architecture.md`.
 
-## Implementation Status (as of 2026-06-16)
+## Implementation Status (as of 2026-07-07)
 
 | Item | Status |
 |------|--------|
-| JPA entities (`Application`, `Outbox`, `OutboxDlq`) | Implemented |
+| JPA entities (`Application`, `OutboxEvent`, `OutboxDlq`) | Implemented |
 | Spring Data repositories | Implemented |
 | Avro schema file | Implemented |
 | Maven Avro plugin (`avro-maven-plugin`) | Implemented in `pom.xml` |
@@ -88,7 +88,7 @@ Indexes
 - Index on `application_id` for replay and query-by-application
 - Index on `correlation_id` for tracing (present in H2 `schema.sql`)
 
-JPA mapping guidance (implemented in `Outbox.java`)
+JPA mapping guidance (implemented in `OutboxEvent.java`)
 - @Entity @Table(name = "outbox")
 - @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
 - @Lob @Column(name = "payload") private byte[] payload;
@@ -214,7 +214,7 @@ Notes for Avro usage
 
 ## Build-time generation
 
-The project uses the Maven Avro plugin (`avro-maven-plugin` 1.11.1) configured in `pom.xml` to generate Java classes from the Avro schema at build time into `target/generated-sources/avro`. The schema file in `src/main/resources/avro/` remains the source of truth.
+The project uses the Maven Avro plugin (`avro-maven-plugin` 1.11.5) configured in `pom.xml` to generate Java classes from the Avro schema at build time into `target/generated-sources/avro`. The schema file in `src/main/resources/avro/` remains the source of truth.
 
 ## Resolved choices and implementation clarifications
 
@@ -244,7 +244,7 @@ The following decisions are final and reflected in the codebase:
 
 **Completed:**
 - Avro schema file at `src/main/resources/avro/application-submitted-v1.avsc`
-- JPA entities for `Application`, `Outbox`, and `OutboxDlq`
+- JPA entities for `Application`, `OutboxEvent`, and `OutboxDlq`
 - Spring Data repositories (`ApplicationRepository`, `OutboxRepository`, `OutboxDlqRepository`)
 - H2 initialization scripts (`schema.sql`, `data.sql`)
 - Transactional outbox write in `ApplicationServiceImpl`
