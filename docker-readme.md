@@ -110,7 +110,7 @@ Press `Ctrl+C` to stop the consumer.
 
 ### `kafka` — single-node KRaft broker
 
-Uses the official [`apache/kafka`](https://hub.docker.com/r/apache/kafka) image in **KRaft** mode. KRaft replaces ZooKeeper, which keeps the local stack simpler and aligns with modern Kafka (Spring Boot 3.5 embedded tests also use KRaft-style brokers).
+Uses the official [`apache/kafka`](https://hub.docker.com/r/apache/kafka) image in **KRaft** mode. KRaft replaces ZooKeeper, which keeps the local stack simpler and aligns with modern Kafka (Spring Boot 4.x embedded tests also use KRaft-style brokers).
 
 **Dual listeners** (required on Docker Desktop for Windows/macOS):
 
