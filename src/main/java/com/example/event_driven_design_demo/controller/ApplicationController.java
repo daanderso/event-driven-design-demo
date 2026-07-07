@@ -4,8 +4,7 @@ import com.example.event_driven_design_demo.dto.ApplicationRequest;
 import com.example.event_driven_design_demo.dto.ApplicationResponse;
 import com.example.event_driven_design_demo.service.ApplicationService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -14,12 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/applications")
 @Validated
 public class ApplicationController {
-
-    private static final Logger log = LoggerFactory.getLogger(ApplicationController.class);
 
     private final ApplicationService applicationService;
 

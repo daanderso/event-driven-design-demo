@@ -8,8 +8,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +16,10 @@ import com.example.event_driven_design_demo.entity.OutboxEvent;
 
 
 
+@Slf4j
 @Component
 public class OutboxPublisher {
 
-    private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
     private static final String EVENT_TYPE = "ApplicationSubmitted";
     private static final String SCHEMA_VERSION = "1";
     private static final long SEND_TIMEOUT_SECONDS = 30;

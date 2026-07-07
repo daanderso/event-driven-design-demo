@@ -1,8 +1,7 @@
 package com.example.event_driven_design_demo.exception;
 
 import com.example.event_driven_design_demo.outbox.OutboxReplayException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +12,9 @@ import org.springframework.web.context.request.WebRequest;
 
 import jakarta.validation.ConstraintViolationException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({ MethodArgumentNotValidException.class })
     protected ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {

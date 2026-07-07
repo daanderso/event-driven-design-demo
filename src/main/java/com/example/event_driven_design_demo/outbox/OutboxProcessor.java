@@ -3,16 +3,14 @@ package com.example.event_driven_design_demo.outbox;
 import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
 public class OutboxProcessor {
-
-    private static final Logger log = LoggerFactory.getLogger(OutboxProcessor.class);
 
     private final OutboxRepository outboxRepository;
     private final OutboxPublisher outboxPublisher;

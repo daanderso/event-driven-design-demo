@@ -1,16 +1,15 @@
 package com.example.event_driven_design_demo.outbox;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "outbox.dispatcher.enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxDispatcher {
 
-    private static final Logger log = LoggerFactory.getLogger(OutboxDispatcher.class);
     private final OutboxDispatchService dispatchService;
 
     public OutboxDispatcher(OutboxDispatchService dispatchService) {
