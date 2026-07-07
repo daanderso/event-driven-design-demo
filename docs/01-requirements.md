@@ -1,8 +1,8 @@
 # 01 - Requirements
 
-## Implementation Status (as of 2026-06-06)
+## Implementation Status (as of 2026-06-16)
 
-This document is the requirements source of truth. See `docs/02-architecture.md` for what is built vs planned. In brief: REST submission, transactional outbox write, and persistence are implemented; Kafka publishing, retry/DLQ processing, cleanup jobs, and admin replay APIs are not yet implemented.
+This document is the requirements source of truth. See `docs/02-architecture.md` for what is built vs planned. In brief: REST submission, transactional outbox write, persistence, Kafka dispatch (outbox dispatcher → `application-submitted`), retry/DLQ processing, retention cleanup, and admin replay APIs are implemented. Remaining work: `GET /applications/{id}`, REST endpoint for application-table fallback replay, Testcontainers integration tests, outbox metrics, and CI Avro compatibility checks.
 
 ## Overview
 

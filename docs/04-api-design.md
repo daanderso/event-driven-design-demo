@@ -4,9 +4,9 @@
 
 This document describes the REST API contract, DTOs, validation rules, controller responsibilities and service interface for the Application Submission API.
 
-Kafka publishing is **not** handled in the REST layer. The service writes an outbox record in the same transaction as the application persist; a separate outbox processor (not yet implemented) will publish to Kafka.
+Kafka publishing is **not** handled in the REST layer. The service writes an outbox record in the same transaction as the application persist; a background outbox processor (`OutboxDispatcher` / `OutboxPublisher`) publishes to Kafka asynchronously.
 
-## Implementation Status (as of 2026-06-06)
+## Implementation Status (as of 2026-06-16)
 
 | Item | Status |
 |------|--------|
@@ -14,8 +14,10 @@ Kafka publishing is **not** handled in the REST layer. The service writes an out
 | Request/response DTOs + validation | Implemented |
 | Global exception handler | Implemented |
 | Transactional outbox write in service | Implemented |
+| Kafka publish (via outbox processor) | Implemented |
+| Admin DLQ / replay endpoints | Implemented |
 | GET /applications/{applicationId} | Not implemented (deferred) |
-| Kafka publish | Not implemented (outbox processor) |
+| Application fallback replay REST endpoint | Not implemented (service method only) |
 
 ## Endpoints
 
@@ -30,6 +32,29 @@ Kafka publishing is **not** handled in the REST layer. The service writes an out
 
 - Description: Retrieve application by id.
 - Status: **Deferred** — not implemented. Recommended for future completeness.
+
+## Admin endpoints
+
+Implemented in `OutboxAdminController` under `/admin`. These endpoints are part of the event-system tooling scope, separate from the submission API.
+
+| Method | Path | Description | Response |
+|--------|------|-------------|----------|
+| GET | `/admin/outbox-dlq` | List DLQ items (paginated) | Paginated `OutboxDlqResponse` |
+| GET | `/admin/outbox-dlq/{id}` | DLQ item detail | `OutboxDlqResponse` |
+| POST | `/admin/outbox-dlq/{id}/replay` | Trigger replay from DLQ payload | `ReplayResponse` |
+| POST | `/admin/outbox/{id}/replay` | Trigger replay from outbox row | `ReplayResponse` |
+
+### Admin DTOs
+
+**`OutboxDlqResponse`** (record):
+
+- `id`, `originalOutboxId`, `applicationId`, `correlationId`, `failureReason`, `attempts`, `failedAt`, `createdAt`
+
+**`ReplayResponse`** (record):
+
+- `message` (string), `success` (boolean)
+
+Application-table fallback replay (`OutboxReplayService.replayFromApplication()`) is implemented as a service method but has no REST endpoint yet.
 
 ## Request / Response DTOs
 
@@ -70,6 +95,8 @@ Example response:
   - Single endpoint `POST /applications`.
   - Returns 201 Created on success.
   - Uses `@Validated` and `@Valid` for request validation.
+- Controller: `OutboxAdminController`
+  - Admin endpoints under `/admin` for DLQ listing and replay (see Admin endpoints above).
 
 ## Service layer design
 
@@ -101,4 +128,4 @@ Example response:
 - Use SLF4J for logging in services and controllers; avoid System.out.println.
 - Follow constructor injection and layered architecture: controller → service → repository.
 - Keep controllers thin; place business logic in services.
-- springdoc-openapi is on the classpath; Swagger UI will be available at `/swagger-ui.html` once configured.
+- springdoc-openapi is on the classpath; Swagger UI is available at `/swagger-ui.html` when the app is running.
