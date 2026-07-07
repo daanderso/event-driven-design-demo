@@ -1,6 +1,6 @@
 package com.example.event_driven_design_demo.outbox;
 
-import com.example.event_driven_design_demo.entity.Outbox;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import org.slf4j.Logger;
@@ -29,39 +29,39 @@ public class OutboxProcessor {
         this.dlqService = dlqService;
     }
 
-    public void processOutbox(Outbox outbox) {
+    public void processOutbox(OutboxEvent outboxEvent) {
         try {
-            outboxPublisher.publish(outbox);
-            markPublished(outbox);
+            outboxPublisher.publish(outboxEvent);
+            markPublished(outboxEvent);
         } catch (OutboxPublishException ex) {
-            handleFailure(outbox, ex);
+            handleFailure(outboxEvent, ex);
         }
     }
 
-    private void markPublished(Outbox outbox) {
+    private void markPublished(OutboxEvent outboxEvent) {
         Instant now = Instant.now();
-        outbox.setStatus(OutboxStatus.PUBLISHED.name());
-        outbox.setPublishedAt(now);
-        outboxRepository.save(outbox);
+        outboxEvent.setStatus(OutboxStatus.PUBLISHED.name());
+        outboxEvent.setPublishedAt(now);
+        outboxRepository.save(outboxEvent);
         log.info("Outbox publish succeeded outboxId={} applicationId={} correlationId={} attempt={} status=published",
-                outbox.getId(), outbox.getApplicationId(), outbox.getCorrelationId(), outbox.getAttempts());
+                outboxEvent.getId(), outboxEvent.getApplicationId(), outboxEvent.getCorrelationId(), outboxEvent.getAttempts());
     }
 
-    private void handleFailure(Outbox outbox, OutboxPublishException ex) {
-        int newAttempts = outbox.getAttempts() + 1;
-        outbox.setAttempts(newAttempts);
-        outbox.setLastError(truncateError(ex));
+    private void handleFailure(OutboxEvent outboxEvent, OutboxPublishException ex) {
+        int newAttempts = outboxEvent.getAttempts() + 1;
+        outboxEvent.setAttempts(newAttempts);
+        outboxEvent.setLastError(truncateError(ex));
 
         if (retryPolicy.shouldMoveToDlq(newAttempts)) {
-            dlqService.moveToDlq(outbox, outbox.getLastError());
+            dlqService.moveToDlq(outboxEvent, outboxEvent.getLastError());
             return;
         }
 
-        outbox.setScheduledRetryAt(retryPolicy.nextRetryAt(newAttempts));
-        outboxRepository.save(outbox);
+        outboxEvent.setScheduledRetryAt(retryPolicy.nextRetryAt(newAttempts));
+        outboxRepository.save(outboxEvent);
         log.warn("Outbox publish failed outboxId={} applicationId={} correlationId={} attempt={} status=retry nextRetryAt={} error={}",
-                outbox.getId(), outbox.getApplicationId(), outbox.getCorrelationId(),
-                newAttempts, outbox.getScheduledRetryAt(), outbox.getLastError());
+                outboxEvent.getId(), outboxEvent.getApplicationId(), outboxEvent.getCorrelationId(),
+                newAttempts, outboxEvent.getScheduledRetryAt(), outboxEvent.getLastError());
     }
 
     private static String truncateError(Throwable ex) {

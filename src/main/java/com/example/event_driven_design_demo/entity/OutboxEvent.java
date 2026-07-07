@@ -15,13 +15,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
+/** JPA entity name "Outbox" (outbox table); Java type is OutboxEvent. */
+@Entity(name = "Outbox")
 @Table(name = "outbox")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Outbox {
+public class OutboxEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,7 +61,3 @@ public class Outbox {
     private Instant publishedAt;
 
 }
-
-
-
-

@@ -1,6 +1,6 @@
 package com.example.event_driven_design_demo.outbox;
 
-import com.example.event_driven_design_demo.entity.Outbox;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxDlq;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.repository.OutboxDlqRepository;
@@ -26,26 +26,26 @@ public class OutboxDlqService {
     }
 
     @Transactional
-    public void moveToDlq(Outbox outbox, String failureReason) {
+    public void moveToDlq(OutboxEvent outboxEvent, String failureReason) {
         Instant now = Instant.now();
 
         OutboxDlq dlq = new OutboxDlq();
-        dlq.setOriginalOutboxId(outbox.getId());
-        dlq.setApplicationId(outbox.getApplicationId());
-        dlq.setCorrelationId(outbox.getCorrelationId());
-        dlq.setPayload(outbox.getPayload());
+        dlq.setOriginalOutboxId(outboxEvent.getId());
+        dlq.setApplicationId(outboxEvent.getApplicationId());
+        dlq.setCorrelationId(outboxEvent.getCorrelationId());
+        dlq.setPayload(outboxEvent.getPayload());
         dlq.setFailureReason(truncate(failureReason, 4000));
-        dlq.setAttempts(outbox.getAttempts());
+        dlq.setAttempts(outboxEvent.getAttempts());
         dlq.setFailedAt(now);
         dlq.setCreatedAt(now);
         outboxDlqRepository.save(dlq);
 
-        outbox.setStatus(OutboxStatus.FAILED.name());
-        outboxRepository.save(outbox);
+        outboxEvent.setStatus(OutboxStatus.FAILED.name());
+        outboxRepository.save(outboxEvent);
 
         log.error("Moved outbox row to DLQ outboxId={} dlqId={} applicationId={} correlationId={} attempts={} failureReason={}",
-                outbox.getId(), dlq.getId(), outbox.getApplicationId(), outbox.getCorrelationId(),
-                outbox.getAttempts(), dlq.getFailureReason());
+                outboxEvent.getId(), dlq.getId(), outboxEvent.getApplicationId(), outboxEvent.getCorrelationId(),
+                outboxEvent.getAttempts(), dlq.getFailureReason());
     }
 
     private static String truncate(String value, int maxLength) {

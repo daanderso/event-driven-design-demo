@@ -1,7 +1,7 @@
 package com.example.event_driven_design_demo.outbox;
 
 import com.example.event_driven_design_demo.entity.Application;
-import com.example.event_driven_design_demo.entity.Outbox;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxDlq;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.repository.ApplicationRepository;
@@ -37,17 +37,17 @@ public class OutboxReplayService {
     }
 
     public void replayOutbox(Long outboxId) {
-        Outbox outbox = outboxRepository.findById(outboxId)
+        OutboxEvent outboxEvent = outboxRepository.findById(outboxId)
                 .orElseThrow(() -> new OutboxReplayException("Outbox row not found: " + outboxId));
 
-        String status = outbox.getStatus();
+        String status = outboxEvent.getStatus();
         if (!OutboxStatus.PUBLISHED.name().equals(status) && !OutboxStatus.FAILED.name().equals(status)) {
             throw new OutboxReplayException("Outbox row is not eligible for replay: status=" + status);
         }
 
-        outboxPublisher.publishPayload(outbox.getApplicationId(), outbox.getCorrelationId(), outbox.getPayload());
+        outboxPublisher.publishPayload(outboxEvent.getApplicationId(), outboxEvent.getCorrelationId(), outboxEvent.getPayload());
         log.info("Manual outbox replay succeeded outboxId={} applicationId={} correlationId={}",
-                outboxId, outbox.getApplicationId(), outbox.getCorrelationId());
+                outboxId, outboxEvent.getApplicationId(), outboxEvent.getCorrelationId());
     }
 
     public void replayDlq(Long dlqId) {

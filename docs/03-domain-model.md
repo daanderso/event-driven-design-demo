@@ -11,7 +11,7 @@ This document defines the domain entities, database schema, JPA mapping guidance
 | Avro schema file | Implemented |
 | Maven Avro plugin (`avro-maven-plugin`) | Implemented in `pom.xml` |
 | H2 `schema.sql` / `data.sql` | Implemented |
-| Outbox processor claiming logic | Implemented (`OutboxClaimService`) |
+| Outbox processor pending retrieval logic | Implemented (`OutboxRetrievalService`) |
 | Retention cleanup job | Implemented (`OutboxCleanupJob`) |
 
 Checklist
@@ -94,7 +94,7 @@ JPA mapping guidance (implemented in `Outbox.java`)
 - @Lob @Column(name = "payload") private byte[] payload;
 - Use Instant for timestamps
 
-Claiming strategy (safe concurrency) — **implemented in `OutboxClaimService`**
+Pending retrieval strategy (safe concurrency) — **implemented in `OutboxRetrievalService`**
 - Postgres: `SELECT ... FOR UPDATE SKIP LOCKED` via native query.
 - H2: single-instance fallback using `OutboxRepository.findPending(now, PageRequest)`.
 - Documented limitation: concurrent multi-instance correctness is not guaranteed on H2.
@@ -224,7 +224,7 @@ The following decisions are final and reflected in the codebase:
 
 2) **Outbox.id type** — `BIGSERIAL` (Long) for efficient scanning. `application_id` and `correlation_id` are UUIDs.
 
-3) **Claiming strategy** — Postgres: `SELECT ... FOR UPDATE SKIP LOCKED` in `OutboxClaimService`. H2: simpler single-instance fallback via `OutboxRepository.findPending`.
+3) **Pending retrieval strategy** — Postgres: `SELECT ... FOR UPDATE SKIP LOCKED` in `OutboxRetrievalService`. H2: simpler single-instance fallback via `OutboxRepository.findPending`.
 
 4) **Schema versioning** — No `schema_version` column; rely on file-based versioning (`application-submitted-v1.avsc`).
 
@@ -248,7 +248,7 @@ The following decisions are final and reflected in the codebase:
 - Spring Data repositories (`ApplicationRepository`, `OutboxRepository`, `OutboxDlqRepository`)
 - H2 initialization scripts (`schema.sql`, `data.sql`)
 - Transactional outbox write in `ApplicationServiceImpl`
-- Outbox processor with Postgres-friendly claiming (H2 fallback) via `OutboxClaimService`
+- Outbox processor with Postgres-friendly pending retrieval (H2 fallback) via `OutboxRetrievalService`
 - Configurable scheduled cleanup job for retention via `OutboxCleanupJob`
 - `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`)
 

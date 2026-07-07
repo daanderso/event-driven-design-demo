@@ -1,36 +1,42 @@
 package com.example.event_driven_design_demo.outbox;
 
-import com.example.event_driven_design_demo.entity.Outbox;
+import java.time.Instant;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.List;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 
 @Service
 public class OutboxDispatchService {
 
-    private final OutboxClaimService claimService;
+    private final OutboxRetrievalService outboxRetrievalService;
     private final OutboxProcessor processor;
     private final OutboxProperties outboxProperties;
 
-    public OutboxDispatchService(OutboxClaimService claimService,
-                                 OutboxProcessor processor,
-                                 OutboxProperties outboxProperties) {
-        this.claimService = claimService;
+    public OutboxDispatchService(OutboxRetrievalService outboxRetrievalService,
+            OutboxProcessor processor,
+            OutboxProperties outboxProperties) {
+        this.outboxRetrievalService = outboxRetrievalService;
         this.processor = processor;
         this.outboxProperties = outboxProperties;
     }
 
     @Transactional
     public int dispatchOnce() {
+
         Instant now = Instant.now();
         int batchSize = outboxProperties.getDispatcher().getBatchSize();
-        List<Outbox> claimed = claimService.claimPending(batchSize, now);
+        List<OutboxEvent> pendingOutboxEvents =
 
-        for (Outbox outbox : claimed) {
-            processor.processOutbox(outbox);
+                outboxRetrievalService.retrievePendingOutboxEvents(batchSize, now);
+        for (OutboxEvent outboxEvent : pendingOutboxEvents) {
+
+            processor.processOutbox(outboxEvent);
+
         }
-        return claimed.size();
+        return pendingOutboxEvents.size();
     }
+
 }

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.example.event_driven_design_demo.entity.Outbox;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 
 
 
@@ -32,13 +32,13 @@ public class OutboxPublisher {
         this.outboxProperties = outboxProperties;
     }
 
-    public void publish(Outbox outbox) {
+    public void publish(OutboxEvent outboxEvent) {
         publishPayload(
-                outbox.getApplicationId(),
-                outbox.getCorrelationId(),
-                outbox.getPayload(),
-                outbox.getId(),
-                outbox.getAttempts());
+                outboxEvent.getApplicationId(),
+                outboxEvent.getCorrelationId(),
+                outboxEvent.getPayload(),
+                outboxEvent.getId(),
+                outboxEvent.getAttempts());
     }
 
     public void publishPayload(UUID applicationId, UUID correlationId, byte[] payload) {

@@ -2,7 +2,7 @@ package com.example.event_driven_design_demo;
 
 import com.example.event_driven_design_demo.dto.ApplicationRequest;
 import com.example.event_driven_design_demo.dto.ApplicationResponse;
-import com.example.event_driven_design_demo.entity.Outbox;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -63,7 +63,7 @@ class OutboxPublishIntegrationTest {
         String applicationId = Objects.requireNonNull(body.getApplicationId());
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
-            List<Outbox> published = outboxRepository.findAll().stream()
+            List<OutboxEvent> published = outboxRepository.findAll().stream()
                     .filter(o -> o.getApplicationId().toString().equals(applicationId))
                     .filter(o -> OutboxStatus.PUBLISHED.name().equals(o.getStatus()))
                     .toList();

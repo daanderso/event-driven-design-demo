@@ -76,7 +76,7 @@ Notes:
 
 - Outbox Processor (publisher) **(Implemented)**
   - Background worker (`OutboxDispatcher`, `OutboxProcessor`, `OutboxPublisher`) that queries the outbox table for pending events and publishes them to Kafka.
-  - Concurrency-safe claiming via `OutboxClaimService` (Postgres `FOR UPDATE SKIP LOCKED`; H2 fallback).
+  - Concurrency-safe retrieval via `OutboxRetrievalService` (Postgres `FOR UPDATE SKIP LOCKED`; H2 fallback).
   - Implements retry/backoff and marks permanently failed items for operator intervention or DLQ storage.
 
 - Kafka **(Implemented)**
@@ -102,7 +102,7 @@ Notes:
 - Controller -> Service: validate input (Jakarta Validation), generate `applicationId` (UUID), `correlationId` (UUID), `timestamp` (ISO-8601 UTC).
 - Service -> DB (single transaction): insert `applications` record and insert `outbox` record with `status = PENDING`, Avro-encoded `payload`, `content_type = avro/binary`, `attempts = 0`, `scheduled_retry_at = now()`.
 - Service -> Controller: return 201 Created with `applicationId`, `correlationId`, `timestamp`, `status`.
-- Outbox Processor (async): periodically select pending outbox rows (where `status = PENDING` and `scheduled_retry_at <= now()`), claim them atomically, publish to Kafka (topic `application-submitted` using `applicationId` as partition key). On success update outbox `status = PUBLISHED`, set `published_at` and keep row for retention window (3 days).
+- Outbox Processor (async): periodically retrieve pending outbox rows (where `status = PENDING` and `scheduled_retry_at <= now()`), publish to Kafka (topic `application-submitted` using `applicationId` as partition key). On success update outbox `status = PUBLISHED`, set `published_at` and keep row for retention window (3 days).
 
 ### 2) Outbox publish failure — Implemented
 

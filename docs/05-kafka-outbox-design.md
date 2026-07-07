@@ -18,7 +18,7 @@ The REST API and domain model are **not** redesigned here. The service already p
 | Transactional outbox write on submit              | Implemented                          |
 | Avro schema + Maven code generation               | Implemented                          |
 | `OutboxRepository.findPending`                    | Implemented                          |
-| Outbox row claiming (concurrency-safe)            | Implemented (`OutboxClaimService`)   |
+| Outbox pending retrieval (concurrency-safe)       | Implemented (`OutboxRetrievalService`) |
 | `OutboxDispatcher` / `OutboxPublisher`            | Implemented                          |
 | Spring Kafka producer (`spring-kafka`)            | Implemented                          |
 | Retry / backoff                                   | Implemented (`OutboxRetryPolicy`)    |
@@ -36,7 +36,7 @@ The REST API and domain model are **not** redesigned here. The service already p
 
 - `docs/01-requirements.md` — requirements and Approved Decisions (authoritative)
 - `docs/02-architecture.md` — high-level architecture and sequence flows
-- `docs/03-domain-model.md` — outbox/DLQ tables, Avro schema, claiming guidance
+- `docs/03-domain-model.md` — outbox/DLQ tables, Avro schema, pending retrieval guidance
 - `docs/04-api-design.md` — REST submission API (Kafka publish is not in the REST layer)
 
 ---
@@ -151,7 +151,7 @@ stateDiagram-v2
   - `outbox.payload` = Avro-encoded `ApplicationSubmitted`
 3. API returns `201 Created` immediately (eventual consistency with Kafka).
 4. `OutboxDispatcher` polls for eligible rows (`status = PENDING` AND `scheduled_retry_at <= now()`).
-5. Dispatcher atomically **claims** rows (see Claiming strategy below).
+5. Dispatcher retrieves pending rows (see Pending retrieval strategy below).
 6. `OutboxPublisher` sends payload to topic `application-submitted` with key `applicationId`.
 7. On Kafka ack success:
   - `outbox.status = PUBLISHED`
@@ -170,7 +170,7 @@ sequenceDiagram
 
     API->>DB: INSERT applications + outbox PENDING
     loop every poll interval
-        Disp->>DB: claim PENDING rows
+        Disp->>DB: retrieve PENDING rows
         Disp->>Pub: publish outbox row
         Pub->>K: send Avro bytes
         alt success
@@ -186,9 +186,9 @@ sequenceDiagram
 
 
 
-### Claiming strategy (concurrency-safe)
+### Pending retrieval strategy (concurrency-safe)
 
-Multiple service instances may run the dispatcher. Claiming must prevent double-processing of the same outbox row.
+Multiple service instances may run the dispatcher. Retrieval must prevent double-processing of the same outbox row.
 
 **PostgreSQL (production target):**
 
@@ -200,7 +200,7 @@ LIMIT :batchSize
 FOR UPDATE SKIP LOCKED
 ```
 
-Claimed rows are processed within the same transaction or immediately after selection under a short-lived lock. On success or failure the row is updated and the transaction commits, releasing the lock.
+Retrieved rows are processed within the same transaction or immediately after selection under a short-lived lock. On success or failure the row is updated and the transaction commits, releasing the lock.
 
 **H2 (local development):**
 
@@ -229,9 +229,9 @@ Only `PENDING` rows whose retry schedule has elapsed are candidates for processi
 
 | Component             | Package            | Responsibility                                                    |
 | --------------------- | ------------------ | ----------------------------------------------------------------- |
-| `OutboxDispatcher`    | `...outbox`        | `@Scheduled` poller; claims a batch and invokes publisher per row |
-| `OutboxPublisher`     | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers |
-| `OutboxClaimService`  | `...outbox`        | Atomic row claiming (Postgres `SKIP LOCKED` / H2 fallback)        |
+| `OutboxDispatcher`       | `...outbox`        | `@Scheduled` poller; retrieves a batch and invokes publisher per row |
+| `OutboxPublisher`        | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers |
+| `OutboxRetrievalService` | `...outbox`        | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)       |
 | `OutboxRetryPolicy`   | `...outbox`        | Computes `scheduled_retry_at` from current `attempts`             |
 | `OutboxDlqService`    | `...outbox`        | Copies exhausted rows to `outbox_dlq`, marks outbox `FAILED`      |
 | `OutboxCleanupJob`    | `...outbox`        | Daily purge of old published outbox rows and DLQ rows             |
@@ -252,7 +252,7 @@ Local defaults use a longer poll interval to reduce load on the embedded H2 data
 
 Each poll cycle:
 
-1. Claim up to `batchSize` eligible rows.
+1. Retrieve up to `batchSize` eligible rows.
 2. For each row, invoke `OutboxPublisher.publish(outbox)`.
 3. On success → mark `PUBLISHED`.
 4. On failure → apply retry policy or move to DLQ.
@@ -500,7 +500,7 @@ End-to-end flow:
 POST /applications
   → DB transaction (applications + outbox PENDING)
   → 201 Created (immediate response)
-  → [async] Dispatcher claims row
+  → [async] Dispatcher retrieves pending row
   → [async] Publish to Kafka
   → [async] PUBLISHED (or retry, or DLQ)
   → [daily] Cleanup purges old rows

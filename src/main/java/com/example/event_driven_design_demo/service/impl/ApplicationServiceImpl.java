@@ -1,22 +1,23 @@
 package com.example.event_driven_design_demo.service.impl;
 
-import com.example.event_driven_design_demo.dto.ApplicationRequest;
-import com.example.event_driven_design_demo.dto.ApplicationResponse;
-import com.example.event_driven_design_demo.entity.Application;
-import com.example.event_driven_design_demo.entity.ApplicationStatus;
-import com.example.event_driven_design_demo.entity.Outbox;
-import com.example.event_driven_design_demo.entity.OutboxStatus;
-import com.example.event_driven_design_demo.outbox.ApplicationSubmittedSerializer;
-import com.example.event_driven_design_demo.repository.ApplicationRepository;
-import com.example.event_driven_design_demo.repository.OutboxRepository;
-import com.example.event_driven_design_demo.service.ApplicationService;
+import java.time.Instant;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.example.event_driven_design_demo.dto.ApplicationRequest;
+import com.example.event_driven_design_demo.dto.ApplicationResponse;
+import com.example.event_driven_design_demo.entity.Application;
+import com.example.event_driven_design_demo.entity.ApplicationStatus;
+import com.example.event_driven_design_demo.entity.OutboxEvent;
+import com.example.event_driven_design_demo.entity.OutboxStatus;
+import com.example.event_driven_design_demo.outbox.ApplicationSubmittedSerializer;
+import com.example.event_driven_design_demo.repository.ApplicationRepository;
+import com.example.event_driven_design_demo.repository.OutboxRepository;
+import com.example.event_driven_design_demo.service.ApplicationService;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
@@ -55,19 +56,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         byte[] payload = eventSerializer.serialize(application);
 
-        Outbox outbox = new Outbox();
-        outbox.setApplicationId(applicationId);
-        outbox.setCorrelationId(correlationId);
-        outbox.setPayload(payload);
-        outbox.setContentType("avro/binary");
-        outbox.setStatus(OutboxStatus.PENDING.name());
-        outbox.setAttempts(0);
-        outbox.setScheduledRetryAt(now);
-        outbox.setCreatedAt(now);
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setApplicationId(applicationId);
+        outboxEvent.setCorrelationId(correlationId);
+        outboxEvent.setPayload(payload);
+        outboxEvent.setContentType("avro/binary");
+        outboxEvent.setStatus(OutboxStatus.PENDING.name());
+        outboxEvent.setAttempts(0);
+        outboxEvent.setScheduledRetryAt(now);
+        outboxEvent.setCreatedAt(now);
 
-        outboxRepository.save(outbox);
+        outboxRepository.save(outboxEvent);
 
-        log.info("Saved application {} and outbox {} (correlationId={})", applicationId, outbox.getId(), correlationId);
+        log.info("Saved application {} and outbox event {} (correlationId={})", applicationId, outboxEvent.getId(), correlationId);
 
         return new ApplicationResponse(
                 applicationId.toString(),
