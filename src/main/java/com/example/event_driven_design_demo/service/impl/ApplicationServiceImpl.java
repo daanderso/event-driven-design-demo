@@ -3,8 +3,7 @@ package com.example.event_driven_design_demo.service.impl;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +18,9 @@ import com.example.event_driven_design_demo.repository.ApplicationRepository;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import com.example.event_driven_design_demo.service.ApplicationService;
 
+@Slf4j
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
-
-    private static final Logger log = LoggerFactory.getLogger(ApplicationServiceImpl.class);
 
     private final ApplicationRepository applicationRepository;
     private final OutboxRepository outboxRepository;

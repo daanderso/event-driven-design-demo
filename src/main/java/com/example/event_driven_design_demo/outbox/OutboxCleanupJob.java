@@ -2,8 +2,7 @@ package com.example.event_driven_design_demo.outbox;
 
 import com.example.event_driven_design_demo.repository.OutboxDlqRepository;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,10 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+@Slf4j
 @Component
 public class OutboxCleanupJob {
-
-    private static final Logger log = LoggerFactory.getLogger(OutboxCleanupJob.class);
 
     private final OutboxRepository outboxRepository;
     private final OutboxDlqRepository outboxDlqRepository;
