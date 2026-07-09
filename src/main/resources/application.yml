@@ -34,6 +34,56 @@ spring:
           ms: 5
         batch-size: 16384
 
+# See docs/06-resilience-design.md for the resilience strategy and rationale.
+resilience4j:
+  retry:
+    configs:
+      persistence-default:
+        max-attempts: 4
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.dao.TransientDataAccessException
+          - org.springframework.dao.RecoverableDataAccessException
+          - org.springframework.transaction.CannotCreateTransactionException
+          - jakarta.persistence.PessimisticLockException
+        ignore-exceptions:
+          - org.springframework.dao.DataIntegrityViolationException
+          - org.springframework.orm.ObjectOptimisticLockingFailureException
+    instances:
+      application-submission-persistence:
+        base-config: persistence-default
+      outbox-persistence:
+        base-config: persistence-default
+        max-attempts: 6
+
+  circuitbreaker:
+    configs:
+      persistence-default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - org.springframework.dao.DataAccessException
+          - org.springframework.transaction.TransactionException
+        ignore-exceptions:
+          - org.springframework.dao.DataIntegrityViolationException
+          - org.springframework.orm.ObjectOptimisticLockingFailureException
+    instances:
+      application-submission-persistence:
+        base-config: persistence-default
+        wait-duration-in-open-state: 5s
+      outbox-persistence:
+        base-config: persistence-default
+        wait-duration-in-open-state: 30s
+
+  retry-aspect-order: 3
+  circuitbreaker-aspect-order: 2
+
 outbox:
   dispatcher:
     enabled: true
@@ -44,6 +94,14 @@ outbox:
   retention:
     published-days: 3
     dlq-days: 30
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
 
 logging:
   level:

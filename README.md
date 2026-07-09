@@ -11,9 +11,8 @@ A Spring Boot demonstration of application submission with a **transactional out
 - Spring Kafka (outbox dispatcher → `application-submitted` topic)
 - Apache Avro (in-repo schemas, Maven code generation)
 - springdoc-openapi 3.0.3 (Swagger UI)
+- Resilience4j (retry + circuit breaker on DB persistence paths) — see [docs/06-resilience-design.md](docs/06-resilience-design.md)
 - Maven
-
-On classpath but not wired: Resilience4j circuit breaker (reserved for future REST resilience).
 
 ## Quick start
 

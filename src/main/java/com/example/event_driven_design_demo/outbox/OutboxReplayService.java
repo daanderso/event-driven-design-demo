@@ -4,9 +4,6 @@ import com.example.event_driven_design_demo.entity.Application;
 import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxDlq;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
-import com.example.event_driven_design_demo.repository.ApplicationRepository;
-import com.example.event_driven_design_demo.repository.OutboxDlqRepository;
-import com.example.event_driven_design_demo.repository.OutboxRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,27 +13,20 @@ import java.util.UUID;
 @Service
 public class OutboxReplayService {
 
-    private final OutboxRepository outboxRepository;
-    private final OutboxDlqRepository outboxDlqRepository;
-    private final ApplicationRepository applicationRepository;
+    private final OutboxReplayReader replayReader;
     private final OutboxPublisher outboxPublisher;
     private final ApplicationSubmittedSerializer serializer;
 
-    public OutboxReplayService(OutboxRepository outboxRepository,
-                               OutboxDlqRepository outboxDlqRepository,
-                               ApplicationRepository applicationRepository,
+    public OutboxReplayService(OutboxReplayReader replayReader,
                                OutboxPublisher outboxPublisher,
                                ApplicationSubmittedSerializer serializer) {
-        this.outboxRepository = outboxRepository;
-        this.outboxDlqRepository = outboxDlqRepository;
-        this.applicationRepository = applicationRepository;
+        this.replayReader = replayReader;
         this.outboxPublisher = outboxPublisher;
         this.serializer = serializer;
     }
 
     public void replayOutbox(Long outboxId) {
-        OutboxEvent outboxEvent = outboxRepository.findById(outboxId)
-                .orElseThrow(() -> new OutboxReplayException("Outbox row not found: " + outboxId));
+        OutboxEvent outboxEvent = replayReader.findOutboxEvent(outboxId);
 
         String status = outboxEvent.getStatus();
         if (!OutboxStatus.PUBLISHED.name().equals(status) && !OutboxStatus.FAILED.name().equals(status)) {
@@ -49,8 +39,7 @@ public class OutboxReplayService {
     }
 
     public void replayDlq(Long dlqId) {
-        OutboxDlq dlq = outboxDlqRepository.findById(dlqId)
-                .orElseThrow(() -> new OutboxReplayException("DLQ row not found: " + dlqId));
+        OutboxDlq dlq = replayReader.findDlq(dlqId);
 
         outboxPublisher.publishPayload(dlq.getApplicationId(), dlq.getCorrelationId(), dlq.getPayload());
         log.info("Manual DLQ replay succeeded dlqId={} applicationId={} correlationId={} originalOutboxId={}",
@@ -58,8 +47,7 @@ public class OutboxReplayService {
     }
 
     public void replayFromApplication(UUID applicationId) {
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new OutboxReplayException("Application not found: " + applicationId));
+        Application application = replayReader.findApplication(applicationId);
 
         byte[] payload = serializer.serialize(application);
         outboxPublisher.publishPayload(application.getApplicationId(), application.getCorrelationId(), payload);

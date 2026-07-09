@@ -7,6 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.event_driven_design_demo.entity.OutboxEvent;
+import com.example.event_driven_design_demo.resilience.ResilienceInstanceNames;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 
 @Service
 public class OutboxDispatchService {
@@ -23,6 +27,8 @@ public class OutboxDispatchService {
         this.outboxProperties = outboxProperties;
     }
 
+    @Retry(name = ResilienceInstanceNames.OUTBOX_PERSISTENCE)
+    @CircuitBreaker(name = ResilienceInstanceNames.OUTBOX_PERSISTENCE)
     @Transactional
     public int dispatchOnce() {
 
