@@ -16,7 +16,11 @@ import com.example.event_driven_design_demo.entity.OutboxStatus;
 import com.example.event_driven_design_demo.outbox.ApplicationSubmittedSerializer;
 import com.example.event_driven_design_demo.repository.ApplicationRepository;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
+import com.example.event_driven_design_demo.resilience.ResilienceInstanceNames;
 import com.example.event_driven_design_demo.service.ApplicationService;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 
 @Slf4j
 @Service
@@ -35,6 +39,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
+    @Retry(name = ResilienceInstanceNames.APPLICATION_SUBMISSION_PERSISTENCE)
+    @CircuitBreaker(name = ResilienceInstanceNames.APPLICATION_SUBMISSION_PERSISTENCE)
     @Transactional
     public ApplicationResponse submitApplication(ApplicationRequest request) {
         UUID applicationId = UUID.randomUUID();

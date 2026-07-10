@@ -1,7 +1,10 @@
 package com.example.event_driven_design_demo.exception;
 
 import com.example.event_driven_design_demo.outbox.OutboxReplayException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,20 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ApiError> handleOutboxReplay(OutboxReplayException ex) {
         ApiError error = new ApiError("NOT_FOUND", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    protected ResponseEntity<ApiError> handleCircuitOpen(CallNotPermittedException ex) {
+        log.warn("Circuit breaker open, rejecting call: {}", ex.getMessage());
+        ApiError error = new ApiError("SERVICE_UNAVAILABLE", "Service temporarily unavailable, please retry shortly");
+        return new ResponseEntity<>(error, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @ExceptionHandler({ TransientDataAccessException.class, DataAccessResourceFailureException.class })
+    protected ResponseEntity<ApiError> handleTransientDataAccess(Exception ex) {
+        log.warn("Transient data access failure after retries: {}", ex.getMessage());
+        ApiError error = new ApiError("SERVICE_UNAVAILABLE", "Service temporarily unavailable, please retry shortly");
+        return new ResponseEntity<>(error, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     @ExceptionHandler(Exception.class)
