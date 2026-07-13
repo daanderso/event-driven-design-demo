@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.dispatch;
 
 import java.time.Instant;
 import java.util.List;
@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.event_driven_design_demo.entity.OutboxEvent;
+import com.example.event_driven_design_demo.outbox.config.OutboxProperties;
 import com.example.event_driven_design_demo.resilience.ResilienceInstanceNames;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -31,18 +32,13 @@ public class OutboxDispatchService {
     @CircuitBreaker(name = ResilienceInstanceNames.OUTBOX_PERSISTENCE)
     @Transactional
     public int dispatchOnce() {
-
         Instant now = Instant.now();
         int batchSize = outboxProperties.getDispatcher().getBatchSize();
         List<OutboxEvent> pendingOutboxEvents =
-
                 outboxRetrievalService.retrievePendingOutboxEvents(batchSize, now);
         for (OutboxEvent outboxEvent : pendingOutboxEvents) {
-
             processor.processOutbox(outboxEvent);
-
         }
         return pendingOutboxEvents.size();
     }
-
 }

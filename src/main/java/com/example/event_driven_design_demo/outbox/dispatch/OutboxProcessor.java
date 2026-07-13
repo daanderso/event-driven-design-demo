@@ -1,7 +1,10 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.dispatch;
 
 import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxStatus;
+import com.example.event_driven_design_demo.outbox.dlq.OutboxDlqService;
+import com.example.event_driven_design_demo.outbox.publish.OutboxPublishException;
+import com.example.event_driven_design_demo.outbox.publish.OutboxPublisher;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

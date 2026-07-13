@@ -1,5 +1,6 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.cleanup;
 
+import com.example.event_driven_design_demo.outbox.config.OutboxProperties;
 import com.example.event_driven_design_demo.repository.OutboxDlqRepository;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import com.example.event_driven_design_demo.resilience.ResilienceInstanceNames;

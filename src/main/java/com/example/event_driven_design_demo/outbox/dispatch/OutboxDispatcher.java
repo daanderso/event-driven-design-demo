@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.dispatch;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,15 +18,12 @@ public class OutboxDispatcher {
 
     @Scheduled(fixedDelayString = "${outbox.dispatcher.fixed-delay-ms:5000}")
     public void dispatchPendingOutboxRows() {
-
         try {
-
             int processed = dispatchService.dispatchOnce();
             if (processed > 0) {
                 log.debug("Processed {} outbox row(s) in dispatch cycle", processed);
             }
         } catch (Exception ex) {
-
             log.error("Unexpected error during outbox dispatch cycle", ex);
         }
     }

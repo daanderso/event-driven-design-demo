@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.replay;
 
 import com.example.event_driven_design_demo.entity.Application;
 import com.example.event_driven_design_demo.entity.OutboxDlq;

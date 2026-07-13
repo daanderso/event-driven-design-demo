@@ -1,6 +1,6 @@
 package com.example.event_driven_design_demo.exception;
 
-import com.example.event_driven_design_demo.outbox.OutboxReplayException;
+import com.example.event_driven_design_demo.outbox.replay.OutboxReplayException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessResourceFailureException;
