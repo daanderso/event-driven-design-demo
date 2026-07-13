@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.dispatch;
 
 import org.springframework.stereotype.Component;
 

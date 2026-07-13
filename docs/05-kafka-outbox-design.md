@@ -227,17 +227,19 @@ Only `PENDING` rows whose retry schedule has elapsed are candidates for processi
 ### Components
 
 
-| Component                  | Package            | Responsibility                                                                     |
-| -------------------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| `OutboxDispatcher`         | `...outbox`        | Scheduled poller; delegates to `OutboxDispatchService.dispatchOnce()`              |
-| `OutboxDispatchService`    | `...outbox`        | Orchestrates one dispatch cycle: retrieve batch, process each row in a transaction |
-| `OutboxProcessor`            | `...outbox`        | Per-row publish attempt, success marking, retry/DLQ on failure                     |
-| `OutboxPublisher`          | `...outbox`        | Sends Avro bytes via `KafkaTemplate`; sets record key and headers                  |
-| `OutboxRetrievalService`     | `...outbox`        | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)                      |
-| `OutboxRetryPolicy`          | `...outbox`        | Computes `scheduled_retry_at` from current `attempts`                              |
-| `OutboxDlqService`           | `...outbox`        | Copies exhausted rows to `outbox_dlq`, marks outbox `FAILED`                       |
-| `OutboxCleanupJob`           | `...outbox`        | Daily purge of old published outbox rows and DLQ rows                                |
-| `OutboxReplayService`        | `...outbox`        | Operator-triggered replay from outbox or DLQ                                         |
+| Component                  | Package                      | Responsibility                                                                     |
+| -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| `OutboxDispatcher`         | `...outbox.dispatch`         | Scheduled poller; delegates to `OutboxDispatchService.dispatchOnce()`              |
+| `OutboxDispatchService`    | `...outbox.dispatch`         | Orchestrates one dispatch cycle: retrieve batch, process each row in a transaction |
+| `OutboxProcessor`          | `...outbox.dispatch`         | Per-row publish attempt, success marking, retry/DLQ on failure                     |
+| `OutboxPublisher`          | `...outbox.publish`          | Sends Avro bytes via `KafkaTemplate`; sets record key and headers                  |
+| `OutboxRetrievalService`   | `...outbox.dispatch`         | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)                      |
+| `OutboxRetryPolicy`        | `...outbox.dispatch`         | Computes `scheduled_retry_at` from current `attempts`                              |
+| `OutboxDlqService`         | `...outbox.dlq`              | Copies exhausted rows to `outbox_dlq`, marks outbox `FAILED`                       |
+| `OutboxCleanupJob`         | `...outbox.cleanup`          | Daily purge of old published outbox rows and DLQ rows                                |
+| `OutboxReplayService`      | `...outbox.replay`           | Operator-triggered replay from outbox or DLQ                                         |
+| `ApplicationSubmittedSerializer` | `...serialization`     | Avro encode for submit path and application-table fallback replay                  |
+| `OutboxProperties`         | `...outbox.config`           | Shared `@ConfigurationProperties` for dispatcher, topic, and retention settings      |
 
 
 ### Dispatcher behavior

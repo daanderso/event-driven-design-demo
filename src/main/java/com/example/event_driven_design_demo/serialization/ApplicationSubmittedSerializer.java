@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.serialization;
 
 import com.example.event_driven_design_demo.entity.Application;
 import com.example.event_driven_design_demo.events.ApplicationSubmitted;

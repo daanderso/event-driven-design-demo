@@ -1,4 +1,4 @@
-package com.example.event_driven_design_demo.outbox;
+package com.example.event_driven_design_demo.outbox.dlq;
 
 import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.entity.OutboxDlq;

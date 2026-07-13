@@ -5,7 +5,7 @@ import com.example.event_driven_design_demo.dto.ApplicationResponse;
 import com.example.event_driven_design_demo.entity.Application;
 import com.example.event_driven_design_demo.entity.OutboxEvent;
 import com.example.event_driven_design_demo.exception.ApiError;
-import com.example.event_driven_design_demo.outbox.OutboxDispatchService;
+import com.example.event_driven_design_demo.outbox.dispatch.OutboxDispatchService;
 import com.example.event_driven_design_demo.repository.ApplicationRepository;
 import com.example.event_driven_design_demo.repository.OutboxRepository;
 import com.example.event_driven_design_demo.resilience.ResilienceInstanceNames;
