@@ -1,6 +1,6 @@
 # 02 - Architecture
 
-## Implementation Status (as of 2026-07-07)
+## Implementation Status (as of 2026-07-13)
 
 | Component | Status |
 |-----------|--------|
@@ -13,8 +13,8 @@
 | Retention cleanup jobs | Implemented |
 | DLQ admin / replay API | Implemented |
 | GET /applications/{id} | Deferred |
-| Integration tests (Testcontainers) | Not started |
 | Integration test (`@EmbeddedKafka`) | Implemented |
+| Integration tests (Testcontainers Postgres, opt-in) | Implemented |
 
 See `docs/04-api-design.md` for the REST layer and `docs/03-domain-model.md` for persistence details.
 
@@ -157,7 +157,7 @@ All previously blocking items have been resolved and incorporated into the archi
 
 1. `GET /applications/{id}` — deferred submission API endpoint.
 2. REST endpoint for `OutboxReplayService.replayFromApplication()` (application-table fallback replay).
-3. Testcontainers integration tests (Postgres concurrency + real Kafka).
+3. Optional Testcontainers Kafka variant for production parity (Postgres concurrency integration tests are implemented, opt-in via `mvn test -Ptestcontainers`).
 4. Outbox metrics / observability (queue size, publish success/failure counters).
 5. Wire Resilience4j for REST (if desired).
 6. CI Avro compatibility checks.

@@ -2,7 +2,7 @@
 
 This document defines the domain entities, database schema, JPA mapping guidance and the Avro event schema for the architecture described in `docs/02-architecture.md`.
 
-## Implementation Status (as of 2026-07-07)
+## Implementation Status (as of 2026-07-13)
 
 | Item | Status |
 |------|--------|
@@ -238,7 +238,7 @@ The following decisions are final and reflected in the codebase:
 
 9) **Retention job** — Daily cleanup in `OutboxCleanupJob`: published outbox rows older than 3 days, DLQ rows older than 30 days.
 
-10) **Testing strategy** — Unit tests on H2; `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`). Concurrency tests should use Testcontainers with Postgres (not yet added).
+10) **Testing strategy** — Unit tests on H2; `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`). Concurrency tests use Testcontainers with Postgres (`OutboxRetrievalConcurrencyPostgresTest`, opt-in via `mvn test -Ptestcontainers`).
 
 ## Completed vs remaining work
 
@@ -251,9 +251,10 @@ The following decisions are final and reflected in the codebase:
 - Outbox processor with Postgres-friendly pending retrieval (H2 fallback) via `OutboxRetrievalService`
 - Configurable scheduled cleanup job for retention via `OutboxCleanupJob`
 - `@EmbeddedKafka` integration test (`OutboxPublishIntegrationTest`)
+- Testcontainers Postgres concurrency test (`OutboxRetrievalConcurrencyPostgresTest`, opt-in via `mvn test -Ptestcontainers`)
 
 **Remaining:**
-- Testcontainers integration tests (Postgres + Kafka; pre-provision `application-submitted` topic)
+- Optional Testcontainers Kafka variant for production parity (pre-provision `application-submitted` topic)
 - REST endpoint for application-table fallback replay (`OutboxReplayService.replayFromApplication()`)
 
 ## Database initialization for local H2 development

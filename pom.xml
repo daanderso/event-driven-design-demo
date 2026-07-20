@@ -29,6 +29,11 @@
 	<properties>
 		<java.version>25</java.version>
 		<spring-cloud.version>2025.1.2</spring-cloud.version>
+		<!-- Spring Boot 4.1.0 no longer manages Testcontainers versions; import the Testcontainers BOM below. -->
+		<testcontainers.version>1.21.4</testcontainers.version>
+		<!-- Opt-in Testcontainers: the default build excludes this JUnit tag (see docs/07-test-strategy.md).
+		     Enable Docker-dependent tests with the "testcontainers" Maven profile (mvn test -Ptestcontainers). -->
+		<test.excluded.groups>testcontainers</test.excluded.groups>
 	</properties>
 	<dependencies>
 
@@ -96,6 +101,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Spring Boot 4 modularized the MVC test slice (@WebMvcTest/@AutoConfigureMockMvc) into its own starter. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-restclient</artifactId>
@@ -126,6 +137,28 @@
 			<artifactId>awaitility</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Testcontainers (opt-in, tagged "testcontainers"). Versions managed by the Spring Boot BOM. -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>kafka</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- PostgreSQL JDBC driver for Testcontainers-backed tests (version managed by the Spring Boot BOM). -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<!-- Avro for schema and serialization -->
 		<dependency>
 			<groupId>org.apache.avro</groupId>
@@ -142,11 +175,57 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- Manages versions for the opt-in Testcontainers test dependencies (junit-jupiter, postgresql, kafka). -->
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>${testcontainers.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
 	<build>
 		<plugins>
+			<!-- Opt-in Testcontainers gating: exclude the "testcontainers" JUnit tag from the default build. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludedGroups>${test.excluded.groups}</excludedGroups>
+				</configuration>
+			</plugin>
+			<!-- Code coverage reporting focused on business logic (see docs/07-test-strategy.md). -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<configuration>
+					<excludes>
+						<exclude>**/event_driven_design_demo/events/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/entity/**</exclude>
+						<exclude>**/config/**</exclude>
+						<exclude>**/EventDrivenDesignDemoApplication.*</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>jacoco-prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>jacoco-report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -234,5 +313,16 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Opt-in: run Docker-dependent Testcontainers tests (mvn test -Ptestcontainers or mvn verify -Ptestcontainers).
+		     Requires a running Docker daemon; tests self-skip when Docker is absent (@Testcontainers disabledWithoutDocker). -->
+		<profile>
+			<id>testcontainers</id>
+			<properties>
+				<test.excluded.groups></test.excluded.groups>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

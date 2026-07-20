@@ -1,0 +1,37 @@
+# Shared test overrides (Approved Decision: introduce a `test` profile / application-test.yml).
+# Activated via @ActiveProfiles("test") on Spring-based tests. Keeps the DB clean (no data.sql)
+# and disables the scheduled dispatcher so tests invoke dispatchOnce()/purgeExpiredRows() explicitly.
+spring:
+  datasource:
+    url: jdbc:h2:mem:app-test;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      # Intentionally point at a missing optional script so the sample data.sql is NOT loaded;
+      # integration tests build their own state explicitly and assert on a clean database.
+      data-locations: optional:classpath:test-no-sample-data.sql
+
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+
+outbox:
+  dispatcher:
+    enabled: false
+    fixed-delay-ms: 300
+    batch-size: 50
+  topic:
+    application-submitted: application-submitted
+  retention:
+    published-days: 3
+    dlq-days: 30

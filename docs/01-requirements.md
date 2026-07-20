@@ -1,8 +1,8 @@
 # 01 - Requirements
 
-## Implementation Status (as of 2026-07-07)
+## Implementation Status (as of 2026-07-13)
 
-This document is the requirements source of truth. See `docs/02-architecture.md` for what is built vs planned. In brief: REST submission, transactional outbox write, persistence, Kafka dispatch (outbox dispatcher → `application-submitted`), retry/DLQ processing, retention cleanup, and admin replay APIs are implemented. Remaining work: `GET /applications/{id}`, REST endpoint for application-table fallback replay, Testcontainers integration tests, outbox metrics, and CI Avro compatibility checks.
+This document is the requirements source of truth. See `docs/02-architecture.md` for what is built vs planned. In brief: REST submission, transactional outbox write, persistence, Kafka dispatch (outbox dispatcher → `application-submitted`), retry/DLQ processing, retention cleanup, admin replay APIs, and the automated test suite (unit, MockMvc API, `@EmbeddedKafka` integration, and opt-in Testcontainers Postgres concurrency tests) are implemented. Remaining work: `GET /applications/{id}`, REST endpoint for application-table fallback replay, outbox metrics, CI Avro compatibility checks, and an optional Testcontainers Kafka variant.
 
 ## Overview
 

@@ -10,7 +10,7 @@ The REST API and domain model are **not** redesigned here. The service already p
 
 **Retry policy (confirmed):** 1 initial publish attempt + 3 retries (4 total attempts), with exponential backoff of 1s, 2s, and 4s after failures 1, 2, and 3 respectively.
 
-## Implementation Status (as of 2026-07-07)
+## Implementation Status (as of 2026-07-13)
 
 
 | Component                                         | Status                               |
@@ -27,7 +27,7 @@ The REST API and domain model are **not** redesigned here. The service already p
 | Retention cleanup jobs (3-day outbox, 30-day DLQ) | Implemented (`OutboxCleanupJob`)     |
 | Admin replay / DLQ endpoints                      | Implemented (`OutboxAdminController`) |
 | Integration test (`@EmbeddedKafka`)               | Implemented                          |
-| Integration tests (Testcontainers)                | Not started                          |
+| Integration tests (Testcontainers Postgres, opt-in) | Implemented (`OutboxRetrievalConcurrencyPostgresTest`) |
 | Application fallback replay REST endpoint         | Not started (service method only)    |
 | Kafka consumer                                    | Out of scope (producer-only service) |
 
@@ -230,7 +230,7 @@ Only `PENDING` rows whose retry schedule has elapsed are candidates for processi
 | Component                  | Package                      | Responsibility                                                                     |
 | -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
 | `OutboxDispatcher`         | `...outbox.dispatch`         | Scheduled poller; delegates to `OutboxDispatchService.dispatchOnce()`              |
-| `OutboxDispatchService`    | `...outbox.dispatch`         | Orchestrates one dispatch cycle: retrieve batch, process each row in a transaction |
+| `OutboxDispatchService`    | `...outbox.dispatch`         | Orchestrates one dispatch cycle in a single transaction: retrieve a batch and process each row |
 | `OutboxProcessor`          | `...outbox.dispatch`         | Per-row publish attempt, success marking, retry/DLQ on failure                     |
 | `OutboxPublisher`          | `...outbox.publish`          | Sends Avro bytes via `KafkaTemplate`; sets record key and headers                  |
 | `OutboxRetrievalService`   | `...outbox.dispatch`         | Retrieves pending rows (Postgres `SKIP LOCKED` / H2 fallback)                      |
@@ -535,7 +535,7 @@ The following items were resolved from the initial Open Questions review (2026-0
 
 ## Remaining work
 
-1. Add Testcontainers integration tests (PostgreSQL + Kafka; pre-provision `application-submitted` topic).
+1. Optional Testcontainers Kafka variant for production parity (pre-provision `application-submitted` topic). PostgreSQL concurrency integration tests are implemented (opt-in via `mvn test -Ptestcontainers`).
 2. REST endpoint for application-table fallback replay (`replayFromApplication`).
 3. Outbox metrics / observability (queue size, publish success/failure counters).
 4. CI Avro compatibility checks.
